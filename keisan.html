@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>計算ゲーム</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      margin-top: 20px;
+    }
+    .timer {
+      font-size: 30px;
+      color: red;
+    }
+    .question {
+      font-size: 20px;
+    }
+    .score {
+      font-size: 24px;
+      margin-top: 20px;
+    }
+    .input-field {
+      font-size: 18px;
+      padding: 5px;
+    }
+    .btn {
+      padding: 10px 20px;
+      font-size: 18px;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="level-selection">
+    <h1>計算ゲーム</h1>
+    <p>難易度を選んでください</p>
+    <button class="btn" onclick="startGame(1)">小1</button>
+    <button class="btn" onclick="startGame(2)">小2</button>
+    <button class="btn" onclick="startGame(3)">小3</button>
+    <button class="btn" onclick="startGame(4)">小4</button>
+    <button class="btn" onclick="startGame(5)">小5</button>
+    <button class="btn" onclick="startGame(6)">小6</button>
+  </div>
+
+  <div id="game" style="display: none;">
+    <div class="timer" id="timer">残り時間: 180秒</div>
+    <div class="question" id="question">問題がここに表示されます</div>
+    <input type="number" id="answer" class="input-field" placeholder="解答" />
+    <button class="btn" onclick="checkAnswer()">回答</button>
+    <div class="score" id="score">得点: 0</div>
+  </div>
+
+  <script>
+    let level;
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let timeLeft = 180;
+    let timerInterval;
+    const questionList = [];
+
+    // 問題を生成する関数
+    function generateQuestion(level) {
+      let maxNum, operator, num1, num2, correctAnswer;
+
+      // 学年ごとの数字の範囲
+      switch(level) {
+        case 1: maxNum = 10; break;  // 小学1年生
+        case 2: maxNum = 30; break;  // 小学2年生
+        case 3: maxNum = 50; break;  // 小学3年生
+        case 4: maxNum = 70; break;  // 小学4年生
+        case 5: maxNum = 90; break;  // 小学5年生
+        case 6: maxNum = 120; break; // 小学6年生
+        default: maxNum = 10; break;
+      }
+
+      // ランダムに演算子を選択
+      const operators = ['+', '-', '×', '÷'];
+      operator = operators[Math.floor(Math.random() * operators.length)];
+
+      // 数字をランダムに生成
+      num1 = Math.floor(Math.random() * maxNum) + 1;
+      num2 = Math.floor(Math.random() * maxNum) + 1;
+
+      // 演算子に応じた問題と解答の計算
+      if (operator === '+') {
+        correctAnswer = num1 + num2;
+      } else if (operator === '-') {
+        // 引き算の場合、num1がnum2より大きくなるように調整
+        if (num1 < num2) {
+          [num1, num2] = [num2, num1]; // num1がnum2より大きくなるように入れ替え
+        }
+        correctAnswer = num1 - num2;
+      } else if (operator === '×') {
+        correctAnswer = num1 * num2;
+      } else if (operator === '÷') {
+        // 割り算の場合、割り切れる問題を生成
+        num2 = Math.floor(Math.random() * (num1 - 1)) + 1; // num2がnum1より小さい数に
+        while (num1 % num2 !== 0) {  // 割り算が割り切れるものだけ生成
+          num2 = Math.floor(Math.random() * (num1 - 1)) + 1;
+        }
+        correctAnswer = num1 / num2;
+      }
+
+      const question = `${num1} ${operator} ${num2}`;
+      return { question, correctAnswer };
+    }
+
+    // ゲームを開始する
+    function startGame(selectedLevel) {
+      level = selectedLevel;
+      currentQuestionIndex = 0;
+      score = 0;
+      timeLeft = 180;
+      document.querySelector("#game").style.display = "block";
+      document.querySelector("#level-selection").style.display = "none";  // 選択画面非表示
+      displayQuestion();
+      startTimer();
+    }
+
+    // タイマーを開始
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.querySelector("#timer").textContent = `残り時間: ${timeLeft}秒`;
+        if (timeLeft <= 0) {
+          endGame();
+        }
+      }, 1000);
+    }
+
+    // 質問を表示する
+    function displayQuestion() {
+      if (currentQuestionIndex < 15) {
+        const { question, correctAnswer } = generateQuestion(level);
+        questionList.push({ question, correctAnswer });
+        document.querySelector("#question").textContent = question;
+        document.querySelector("#answer").value = "";
+      } else {
+        endGame();
+      }
+    }
+
+    // 解答をチェック
+    function checkAnswer() {
+      const userAnswer = parseFloat(document.querySelector("#answer").value);
+      const correctAnswer = questionList[currentQuestionIndex].correctAnswer;
+      if (userAnswer === correctAnswer) {
+        score++;
+      }
+      currentQuestionIndex++;
+      document.querySelector("#score").textContent = `得点: ${score}`;
+      displayQuestion();
+    }
+
+    // ゲーム終了
+    function endGame() {
+      clearInterval(timerInterval);
+      document.querySelector("#question").textContent = "ゲーム終了！";
+      document.querySelector("#timer").style.display = "none";
+      document.querySelector("#score").textContent = `最終得点: ${score}`;
+      
+      // 終了後に選択画面を表示
+      setTimeout(() => {
+        document.querySelector("#game").style.display = "none";
+        document.querySelector("#level-selection").style.display = "block";  // 選択画面表示
+      }, 2000);  // 2秒後に遷移
+    }
+
+    // Enterキーで解答送信できるようにする
+    document.querySelector("#answer").addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        checkAnswer();
+      }
+    });
+  </script>
+</body>
+</html>
+
